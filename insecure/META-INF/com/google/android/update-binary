@@ -1,0 +1,82 @@
+#!/sbin/sh
+
+# Set adb insecure and debuggable.
+# by ipdev @ xda-developers
+
+OUTFD=/proc/self/fd/$2;
+ZIPFILE="$3";
+
+# Set functions
+ui_print() {
+	while [ "$1" ]; do
+		echo -e "ui_print $1\nui_print" >> $OUTFD;
+		shift;
+	done;
+}
+
+unmount_all() {
+	grep -q "/system " /proc/mounts && umount system | ui_print " System ";
+	grep -q "/vendor " /proc/mounts && umount vendor | ui_print " Vendor ";
+}
+
+vendor_mount() {
+	if grep -q "/vendor " /proc/mounts; then
+		ui_print " Vendor is mounted. ";
+	elif /sbin/mount /vendor && ui_print " Mounting Vendor. "; then
+		grep -q "/vendor " /proc/mounts && ui_print " Vendor is mounted. ";
+	else
+		ui_print " Vendor could not be mounted. "
+		ui_print " Exit with no changes made. "
+		ui_print " "
+		exit 1
+	fi
+}
+
+# Set variables 
+device_a="beryllium"
+DEVICE=`getprop ro.product.device`
+
+# Display Title
+ui_print " "
+ui_print " Insecure and Debuggable "
+ui_print " Pocophone F1 (beryllium) "
+ui_print " "
+
+# Device check
+if [ "$DEVICE" == "$device_a" ]; then
+	ui_print " "
+else
+	ui_print " This package is for $device_a "
+	ui_print " This device is $DEVICE "
+	ui_print " Abort. "
+	ui_print " "
+	exit 1
+fi
+
+# Check and mount vendor 
+vendor_mount
+
+# Set device insecure and debuggable.
+ui_print " "
+ui_print " Setting device insecure and debuggable. "
+
+# Comment out if needed.
+sed -i s/ro.adb.secure/\#\#\ ro.adb.secure/ /vendor/build.prop
+sed -i s/ro.secure/\#\#\ ro.secure/ /vendor/build.prop
+sed -i s/ro.debuggable/\#\#\ ro.debuggable/ /vendor/build.prop
+
+# Append to the end of build.prop file.
+echo \#\# Add to be insecure and debuggable >> /vendor/build.prop
+echo ro.adb.secure=0 >> /vendor/build.prop
+echo ro.secure=0 >> /vendor/build.prop
+echo ro.debuggable=1 >> /vendor/build.prop
+
+# Finish script
+ui_print " "
+ui_print " Unmount... "
+unmount_all
+ui_print " "
+
+ui_print " Done.. "
+ui_print " "
+exit 0

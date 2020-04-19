@@ -1,0 +1,81 @@
+#!/sbin/sh
+
+# Replace encryption wiht Forced encryption
+# by ipdev @ xda-developers
+
+OUTFD=/proc/self/fd/$2;
+ZIPFILE="$3";
+
+# Set functions
+ui_print() {
+	while [ "$1" ]; do
+		echo -e "ui_print $1\nui_print" >> $OUTFD;
+		shift;
+	done;
+}
+
+unmount_all() {
+	grep -q "/system " /proc/mounts && umount system | ui_print " System ";
+	grep -q "/vendor " /proc/mounts && umount vendor | ui_print " Vendor ";
+}
+
+vendor_mount() {
+	if grep -q "/vendor " /proc/mounts; then
+		ui_print " Vendor is mounted. ";
+	elif /sbin/mount /vendor && ui_print " Mounting Vendor. "; then
+		grep -q "/vendor " /proc/mounts && ui_print " Vendor is mounted. ";
+	else
+		ui_print " Vendor could not be mounted. "
+		ui_print " Exit with no changes made. "
+		ui_print " "
+		exit 1
+	fi
+}
+
+# Set variables 
+device_a="beryllium"
+DEVICE=`getprop ro.product.device`
+
+# Display Title
+ui_print " "
+ui_print " Enable Forced Encryption "
+ui_print " Pocophone F1 (beryllium) "
+ui_print " "
+
+# Device check
+if [ "$DEVICE" == "$device_a" ]; then
+	ui_print " "
+else
+	ui_print " This package is for $device_a "
+	ui_print " This device is $DEVICE "
+	ui_print " Abort. "
+	ui_print " "
+	exit 1
+fi
+
+# Check and mount vendor 
+vendor_mount
+
+# Replace encryptable with forceencrypt.
+ui_print " "
+ui_print " Replacing encryptable in the fstab file to forceencrypt. "
+sed -i s/check,encryptable/check,forceencrypt/ /vendor/etc/fstab.qcom
+
+## The below section is block commented. If you wish to remove the
+## vendor security date also, uncomment the lines in the next section.
+
+# # Replace vendor security date with a blank value (No date).
+# ui_print " "
+# ui_print " Remove vendor security date. "
+# vsdate=`grep ro.vendor.build.security_patch /vendor/build.prop`
+# sed -i s/$vsdate/ro.vendor.build.security_patch=/ /vendor/build.prop
+
+# Finish script
+ui_print " "
+ui_print " Unmount... "
+unmount_all
+ui_print " "
+
+ui_print " Done.. "
+ui_print " "
+exit 0

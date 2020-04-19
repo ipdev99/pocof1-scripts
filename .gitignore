@@ -1,0 +1,13 @@
+# ignore (MacOS finder)
+.DS_Store*
+
+# ignore out directory
+out/*
+
+# ignore xfiles
+x_*
+xfiles/*
+
+# ignore backup and zip files.
+*.backup
+*.zip
